@@ -34,7 +34,7 @@
           Ingresa Datos
         </h2>
 
-        <form @submit.prevent="register">
+        <form @submit.prevent="submitForm">
           <div class="grid grid-cols-1 gap-6 mt-4 sm:grid-cols-2">
             <div>
               <label class="text-gray-700" for="secuencia1">Secuencia 1</label>
@@ -90,6 +90,20 @@
             </button>
           </div>
         </form>
+
+        <div v-if="loading" id="loading" class="mt-4">Loading...</div>
+        <div v-if="error" id="error" class="mt-4 text-red-500">{{ error }}</div>
+        <div v-if="results" id="results" class="mt-4">
+          <div id="finalScore" class="mt-2">Final Score: {{ results.final_score }}</div>
+          <div id="scoreMatrix" class="mt-2">
+            <div v-for="(row, rowIndex) in results.score_matrix" :key="rowIndex" style="display: flex;">
+              <div v-for="(cell, cellIndex) in row" :key="cellIndex" class="matrix-cell">{{ cell }}</div>
+            </div>
+          </div>
+          <div id="alignments" class="mt-2">
+            <div v-for="(alignment, index) in results.alignments" :key="index">{{ alignment }}</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -97,25 +111,50 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import axios from 'axios' // Asegúrate de tener axios instalado y configurado
 
 interface User {
-  secuencia1: string
-  secuencia2: string
+  seq1: string
+  seq2: string
   match: string
   mismatch: string
   gap: string
 }
 
 const user = ref<User>({
-  secuencia1: '',
-  secuencia2: '',
+  seq1: '',
+  seq2: '',
   match: '',
   mismatch: '',
   gap: '',
 })
 
-function register() {
+const loading = ref(false)
+const error = ref('')
+const results = ref(null)
+
+const submitForm = async () => {
+  loading.value = true
+  error.value = ''
+  results.value = null
+
   const data = JSON.parse(JSON.stringify(user.value))
-  console.log('Registered: ', data)
+
+  try {
+    const response = await axios.post('http://localhost:8000/algorithms/needleman', data)
+    results.value = response.data
+  } catch (err) {
+    error.value = 'Error: ' + err.message
+  } finally {
+    loading.value = false
+  }
 }
 </script>
+
+<style scoped>
+.matrix-cell {
+  border: 1px solid #ddd;
+  padding: 5px;
+  margin: 2px;
+}
+</style>
